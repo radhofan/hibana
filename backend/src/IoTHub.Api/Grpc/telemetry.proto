@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option csharp_namespace = "IoTHub.Api.Grpc";
+
+package telemetry;
+
+service TelemetryService {
+  // Single reading ingest
+  rpc IngestReading (TelemetryRequest) returns (TelemetryResponse);
+  // High-throughput client-side streaming
+  rpc IngestStream (stream TelemetryRequest) returns (IngestStreamResponse);
+}
+
+message TelemetryRequest {
+  string hardware_id = 1;
+  double value = 2;
+  string unit = 3;
+  int64 timestamp_unix_ms = 4;
+}
+
+message TelemetryResponse {
+  string reading_id = 1;
+  string status = 2;
+  string message = 3;
+}
+
+message IngestStreamResponse {
+  int32 accepted = 1;
+  int32 rejected = 2;
+}
