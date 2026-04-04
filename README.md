@@ -47,6 +47,42 @@ gRPC IngestReading
                                     → Reviewer Agent critiques failure logs
 ```
 
+## Requirements
+
+### Local Tools
+| Tool | Version | Notes |
+|---|---|---|
+| .NET SDK | 10+ | Required for backend and CLI |
+| Node.js | 18+ | For React frontend |
+| Docker Desktop | Latest | Runs all infrastructure containers |
+
+### Docker Services (no account needed — runs locally)
+| Service | Port | Purpose |
+|---|---|---|
+| SQL Server 2022 | 1433 | Write-side database (telemetry, devices, alerts) |
+| Redis 7 | 6379 | Read-side cache & aggregations |
+| RabbitMQ 3.13 | 5672 / 15672 | Alert queue (threshold breach processing) |
+| Ollama | 11434 | Local LLM inference for multi-agent AI (100% free, no API key) |
+| Prometheus | 9090 | Metrics scraping |
+| Grafana | 3001 | Monitoring dashboards |
+
+Start all of the above with: `docker compose up -d`
+
+After starting, pull the LLM model once:
+```bash
+docker exec -it ollama ollama pull llama3
+```
+
+### External Services (optional, all free tier)
+| Service | Purpose | Sign Up |
+|---|---|---|
+| Sentry | Error tracking & performance monitoring | [sentry.io](https://sentry.io) |
+| Mapbox | Interactive maps (alternative to free OpenStreetMap) | [mapbox.com](https://mapbox.com) |
+
+Both are optional. The app runs fully without them — OpenStreetMap via Leaflet is used by default for maps, and Sentry DSN can be left empty.
+
+Copy your keys into `.env` — see `.env` for the exact variable names.
+
 ## Quick Start
 
 ### 1. Start infrastructure
