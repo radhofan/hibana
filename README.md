@@ -52,14 +52,14 @@ flowchart LR
 
 ## Tech Stack
 
-| Layer | Technology |
-| --- | --- |
-| Frontend | React, TypeScript entry point, Vite, CesiumJS, TanStack Query, Recharts |
-| Backend | .NET 10, ASP.NET Core controllers, typed `HttpClient`, `IMemoryCache` |
-| API safeguards | Problem Details, rate limiting, health checks, OpenAPI |
-| Weather | [Open-Meteo](https://open-meteo.com/) |
-| Geocoding | [OpenStreetMap Nominatim](https://nominatim.org/) |
-| Tests | xUnit and ASP.NET Core integration-test host |
+| Layer          | Technology                                                              |
+| -------------- | ----------------------------------------------------------------------- |
+| Frontend       | React, TypeScript entry point, Vite, CesiumJS, TanStack Query, Recharts |
+| Backend        | .NET 10, ASP.NET Core controllers, typed `HttpClient`, `IMemoryCache`   |
+| API safeguards | Problem Details, rate limiting, health checks, OpenAPI                  |
+| Weather        | [Open-Meteo](https://open-meteo.com/)                                   |
+| Geocoding      | [OpenStreetMap Nominatim](https://nominatim.org/)                       |
+| Tests          | xUnit and ASP.NET Core integration-test host                            |
 
 ## Local Setup
 
@@ -84,14 +84,14 @@ Leave `VITE_API_BASE_URL` unset for local development. Set it only when the fron
 
 ## Main Routes
 
-| Path | Purpose |
-| --- | --- |
-| `GET /api/v1/weather` | Normalized current, hourly, and daily weather for coordinates |
-| `GET /api/v1/locations/search` | City search results |
-| `GET /api/v1/locations/reverse` | Optional reverse-geocoding result |
-| `GET /health/live` | Liveness check |
-| `GET /health/ready` | Readiness check |
-| `GET /openapi/v1.json` | Development OpenAPI document |
+| Path                            | Purpose                                                       |
+| ------------------------------- | ------------------------------------------------------------- |
+| `GET /api/v1/weather`           | Normalized current, hourly, and daily weather for coordinates |
+| `GET /api/v1/locations/search`  | City search results                                           |
+| `GET /api/v1/locations/reverse` | Optional reverse-geocoding result                             |
+| `GET /health/live`              | Liveness check                                                |
+| `GET /health/ready`             | Readiness check                                               |
+| `GET /openapi/v1.json`          | Development OpenAPI document                                  |
 
 ## Test
 
@@ -109,7 +109,3 @@ Hibana uses only process-local `IMemoryCache` for temporary weather and geocodin
 ## Deployment
 
 Deploy the Vite build to a static host and the ASP.NET Core API to any .NET-compatible host. Set `Cors:AllowedOrigins` to the deployed frontend origin. The application needs no database deployment, Redis deployment, migrations, or persistent volume.
-
-## Removed Legacy Infrastructure
-
-The previous IoT product infrastructure has been removed: SQL Server, EF Core, Redis, RabbitMQ, SignalR, gRPC, Semantic Kernel, Ollama, MediatR, Prometheus, Sentry, Docker Compose, and the CLI.
