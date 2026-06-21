@@ -1,0 +1,35 @@
+.topbar {
+  top: 22px;
+  left: 28px;
+  right: 28px;
+  min-height: 74px;
+  gap: 28px;
+  padding: 13px 18px;
+  background: #071321;
+  border: 1px solid #34516b;
+  border-radius: 16px;
+  box-shadow: 0 14px 36px #000a;
+}
+
+.topbar h1 { font-size: 32px; }
+.topbar p { color: #c5d6e5; }
+.search-card, .recent-card { width: 220px; }
+.search-card { top: 146px; }
+.recent-card { top: 210px; padding: 8px; }
+.weather-panel { top: 146px; width: min(320px, calc(100vw - 56px)); padding: 16px; }
+.weather-panel .location-row h2 { font-size: 18px; }
+.weather-panel .hero-weather { margin: 16px 0; gap: 9px; }
+.weather-panel .hero-weather > span { font-size: 32px; }
+.weather-panel .hero-weather strong { font-size: 48px; }
+.weather-panel .metrics { gap: 6px; }
+.weather-panel .metrics div { padding: 7px; }
+.weather-panel .metrics b { font-size: 11px; }
+.weather-panel section h3 { margin: 16px 0 7px; }
+.weather-panel .chart { height: 110px; }
+.weather-panel .hourly-list div { min-width: 72px; padding: 6px; }
+.comparison { width: 220px; padding: 10px; }
+
+@media (max-width: 700px) {
+  .topbar { top: 14px; left: 16px; right: 16px; min-height: 54px; padding: 8px 12px; }
+  .search-card { top: 84px; }
+}

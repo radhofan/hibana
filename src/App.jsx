@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Cartesian3, Color, EllipsoidTerrainProvider, ScreenSpaceEventHandler, ScreenSpaceEventType, Viewer } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
@@ -44,7 +44,7 @@ export default function App() {
   useEffect(() => { sessionStorage.setItem('hibana-compare', JSON.stringify(compare)) }, [compare])
   useEffect(() => { localStorage.setItem('hibana-recent', JSON.stringify(recent)) }, [recent])
 
-  const pick = location => setPoint({ lat: Number(location.lat.toFixed(4)), lng: Number(location.lng.toFixed(4)) })
+  const pick = useCallback(location => setPoint({ lat: Number(location.lat.toFixed(4)), lng: Number(location.lng.toFixed(4)) }), [])
   const searchCity = async event => {
     event.preventDefault(); if (search.trim().length < 2) return
     await searchQuery.refetch()

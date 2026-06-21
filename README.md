@@ -1,18 +1,42 @@
-# Hibana - Interactive Global Weather Explorer
+# Hibana
 
-Hibana is a full-screen weather explorer. Pick any point on the interactive world map, search for a city, and inspect current conditions with hourly and daily forecasts. It has no accounts, database, Redis, containers, queues, or persistent backend state.
+Hibana is an interactive global weather explorer built with React and ASP.NET Core. Pick anywhere on the 3D globe, search for a city, and inspect live conditions with hourly and seven-day forecasts. It has no accounts, database, Redis, queues, containers, or persistent backend state.
 
-## What happens when you explore
+### Explore the globe
 
-1. You click the map or select a city.
-2. The React client sends coordinates to `GET /api/v1/weather`.
-3. The ASP.NET Core API validates the query and checks `IMemoryCache`.
-4. On a miss, it calls Open-Meteo for weather and Nominatim for a location name concurrently.
-5. Hibana returns its own normalized response. If reverse geocoding fails, the weather result still returns with a coordinate label.
+Click a point on Earth to fly the globe to that location and load its weather.
+
+### Current conditions and forecasts
+
+See the resolved location, local time, current conditions, hourly temperatures, and a seven-day outlook in a compact weather panel.
+
+### City search and comparison
+
+Search for a city, fly there, and compare up to four locations for the current browser session.
+
+## What You Can Do
+
+- Rotate, zoom, and select a land or ocean location on the 3D globe.
+- View coordinates and a nearby location name when reverse geocoding succeeds.
+- Inspect current temperature, feels-like temperature, humidity, wind, pressure, cloud cover, visibility, and sunset.
+- Browse hourly temperature, precipitation probability, and wind forecasts.
+- Browse a seven-day forecast with temperatures, precipitation, sunrise, and sunset.
+- Search for cities and fly the globe to the chosen result.
+- Switch between metric and imperial units.
+- Compare up to four locations during the current browser session.
+- Reopen recent locations stored only in the browser.
+
+## Weather Request Flow
+
+1. Click the globe or select a city from search.
+2. The React client sends coordinates to `GET /api/v1/weather` on the ASP.NET Core API.
+3. The API validates the request and checks `IMemoryCache`.
+4. On a cache miss, the API requests weather from Open-Meteo and a location name from Nominatim concurrently.
+5. The API returns one Hibana-owned response. If geocoding fails, weather still returns with a coordinate label.
 
 ```mermaid
 flowchart LR
-    User[User] --> Globe[React weather map]
+    User[User] --> Globe[React + Cesium Globe]
     Globe --> API[ASP.NET Core API]
     API --> Memory[IMemoryCache]
     API --> Weather[Open-Meteo]
@@ -22,46 +46,66 @@ flowchart LR
     API --> Globe
 ```
 
-## Technology
+## Tech Stack
 
-- Frontend: React, Vite, Leaflet, Recharts
-- Backend: .NET 10, ASP.NET Core controllers, typed `HttpClient`, `IMemoryCache`, OpenAPI, Problem Details, rate limiting, health checks
-- External providers: [Open-Meteo](https://open-meteo.com/) and [OpenStreetMap Nominatim](https://nominatim.org/)
+| Layer | Technology |
+| --- | --- |
+| Frontend | React, TypeScript entry point, Vite, CesiumJS, TanStack Query, Recharts |
+| Backend | .NET 10, ASP.NET Core controllers, typed `HttpClient`, `IMemoryCache` |
+| API safeguards | Problem Details, rate limiting, health checks, OpenAPI |
+| Weather | [Open-Meteo](https://open-meteo.com/) |
+| Geocoding | [OpenStreetMap Nominatim](https://nominatim.org/) |
+| Tests | xUnit and ASP.NET Core integration-test host |
 
-The backend is intentionally stateless. Cached weather and location data lives only in process memory and disappears safely on restart.
+## Local Setup
 
-## Local Windows setup
+Requirements: .NET SDK 10, Node.js 20 or newer, and pnpm. No Docker, WSL, database, Redis, RabbitMQ, or Ollama is required.
 
-Required: .NET SDK 10 and Node.js 20 or newer. No Docker, WSL, database, Redis, RabbitMQ, or Ollama is required.
-
-Run the API:
+Start the API in one CMD window:
 
 ```cmd
-dotnet restore backend/Hibana.sln
-dotnet run --project backend/src/Hibana.Api
+set PATH=C:\Users\USER\scoop\apps\dotnet-sdk-lts\current;%PATH%
+dotnet run --project backend\src\Hibana.Api
 ```
 
-Run the client in a second CMD window:
+Start the frontend in a second CMD window:
 
 ```cmd
 pnpm run dev
 ```
 
-The client is served at `http://localhost:5173`; the API uses `http://localhost:5000` by default. Copy `.env.example` to `.env` only when the API runs on a different origin.
+Open `http://localhost:5173`. The API runs at `http://localhost:5000`.
 
-## API
+Leave `VITE_API_BASE_URL` unset for local development. Set it only when the frontend and API are hosted on different origins.
 
-- `GET /api/v1/weather?latitude=-6.9175&longitude=107.6191&hourlyHours=24&dailyDays=7&units=metric`
-- `GET /api/v1/locations/search?query=Bandung`
-- `GET /health/live`
-- `GET /health/ready`
+## Main Routes
 
-In development, OpenAPI is at `/openapi/v1.json`. Invalid query values return RFC 7807 Problem Details. The API limits public endpoint traffic to 60 requests per minute per application instance.
+| Path | Purpose |
+| --- | --- |
+| `GET /api/v1/weather` | Normalized current, hourly, and daily weather for coordinates |
+| `GET /api/v1/locations/search` | City search results |
+| `GET /api/v1/locations/reverse` | Optional reverse-geocoding result |
+| `GET /health/live` | Liveness check |
+| `GET /health/ready` | Readiness check |
+| `GET /openapi/v1.json` | Development OpenAPI document |
+
+## Test
+
+```cmd
+set PATH=C:\Users\USER\scoop\apps\dotnet-sdk-lts\current;%PATH%
+dotnet test backend\Hibana.sln
+node_modules\.bin\tsc.CMD -p tsconfig.json
+pnpm run build
+```
+
+## Stateless Architecture
+
+Hibana uses only process-local `IMemoryCache` for temporary weather and geocoding results. Restarting the API safely clears the cache. There are no migrations, volumes, database configuration, user records, saved-location tables, or provider secrets in the browser.
 
 ## Deployment
 
-Deploy the Vite build to a static host and the API to any .NET-compatible host. Configure the allowed frontend origin under `Cors:AllowedOrigins`; do not expose provider credentials in the browser. There are no migrations, persistent volumes, or infrastructure services to deploy.
+Deploy the Vite build to a static host and the ASP.NET Core API to any .NET-compatible host. Set `Cors:AllowedOrigins` to the deployed frontend origin. The application needs no database deployment, Redis deployment, migrations, or persistent volume.
 
-## Removed legacy product infrastructure
+## Removed Legacy Infrastructure
 
-The previous IoT monitoring application, SQL Server, EF Core, Redis, RabbitMQ, SignalR, gRPC, Semantic Kernel, Ollama, MediatR, Prometheus, Sentry, Docker Compose, and CLI have been removed. Hibana now contains only the weather-explorer product.
+The previous IoT product infrastructure has been removed: SQL Server, EF Core, Redis, RabbitMQ, SignalR, gRPC, Semantic Kernel, Ollama, MediatR, Prometheus, Sentry, Docker Compose, and the CLI.
