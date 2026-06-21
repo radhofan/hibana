@@ -1,231 +1,67 @@
-# Project 3: High-Performance IoT Telemetry Hub
+# Hibana - Interactive Global Weather Explorer
 
-.NET 10 Clean Architecture backend + React frontend for ingesting and visualizing IoT device telemetry in real-time, with multi-agent AI orchestration and a custom CLI tool.
+Hibana is a full-screen weather explorer. Pick any point on the interactive world map, search for a city, and inspect current conditions with hourly and daily forecasts. It has no accounts, database, Redis, containers, queues, or persistent backend state.
 
-## Architecture
+## What happens when you explore
 
-```
-Frontend (React/Vite :5173)
-    └─> REST API  (ASP.NET Core :5000)
-    └─> SignalR   (/hubs/telemetry) — live push
-    
-IoT Devices ─> gRPC (:5001, HTTP/2) — high-throughput ingest
+1. You click the map or select a city.
+2. The React client sends coordinates to `GET /api/v1/weather`.
+3. The ASP.NET Core API validates the query and checks `IMemoryCache`.
+4. On a miss, it calls Open-Meteo for weather and Nominatim for a location name concurrently.
+5. Hibana returns its own normalized response. If reverse geocoding fails, the weather result still returns with a coordinate label.
 
-Backend layers:
-  IoTHub.Api          → gRPC service, SignalR hub, REST controllers
-  IoTHub.Application  → CQRS handlers (MediatR), interfaces
-  IoTHub.Infrastructure → SQL Server (EF Core), Redis, RabbitMQ
-  IoTHub.Domain       → Entities (Device, TelemetryReading, Alert)
-
-AI Orchestration:
-  Ollama (local LLM) + Microsoft Semantic Kernel
-    ├─> Planner Agent  — detects failing IoT nodes, triggers review
-    └─> Reviewer Agent — critiques failure logs for performance bottlenecks
-
-Infra:
-  SQL Server :1433  — write-side (telemetry, devices, alerts)
-  Redis :6379       — read-side cache (device list, aggregations)
-  RabbitMQ :5672    — alert-queue (threshold breach processing)
-  Ollama :11434     — local LLM inference (multi-agent orchestration)
-  Prometheus :9090  — metrics scraping
-  Grafana :3001     — dashboards (admin/admin)
+```mermaid
+flowchart LR
+    User[User] --> Globe[React weather map]
+    Globe --> API[ASP.NET Core API]
+    API --> Memory[IMemoryCache]
+    API --> Weather[Open-Meteo]
+    API --> Geo[Nominatim]
+    Weather --> API
+    Geo --> API
+    API --> Globe
 ```
 
-## Data Flow
+## Technology
 
-```
-gRPC IngestReading
-  → IngestTelemetryCommand (MediatR)
-  → SQL Server write (TelemetryReading)
-  → Device status updated
-  → SignalR broadcast (TelemetryReceived, DeviceStatusChanged)
-  → If value >= threshold → RabbitMQ "alert-queue"
-                              → AlertProcessorWorker (BackgroundService)
-                              → Alert persisted to SQL Server
-                              → SignalR broadcast (AlertTriggered)
-                              → AI Planner Agent evaluates node health
-                                    → Reviewer Agent critiques failure logs
-```
+- Frontend: React, Vite, Leaflet, Recharts
+- Backend: .NET 10, ASP.NET Core controllers, typed `HttpClient`, `IMemoryCache`, OpenAPI, Problem Details, rate limiting, health checks
+- External providers: [Open-Meteo](https://open-meteo.com/) and [OpenStreetMap Nominatim](https://nominatim.org/)
 
-## Requirements
+The backend is intentionally stateless. Cached weather and location data lives only in process memory and disappears safely on restart.
 
-### Local Tools
-| Tool | Version | Notes |
-|---|---|---|
-| .NET SDK | 10+ | Required for backend and CLI |
-| Node.js | 18+ | For React frontend |
-| Docker Desktop | Latest | Runs all infrastructure containers |
+## Local Windows setup
 
-### Docker Services (no account needed — runs locally)
-| Service | Port | Purpose |
-|---|---|---|
-| SQL Server 2022 | 1433 | Write-side database (telemetry, devices, alerts) |
-| Redis 7 | 6379 | Read-side cache & aggregations |
-| RabbitMQ 3.13 | 5672 / 15672 | Alert queue (threshold breach processing) |
-| Ollama | 11434 | Local LLM inference for multi-agent AI (100% free, no API key) |
-| Prometheus | 9090 | Metrics scraping |
-| Grafana | 3001 | Monitoring dashboards |
+Required: .NET SDK 10 and Node.js 20 or newer. No Docker, WSL, database, Redis, RabbitMQ, or Ollama is required.
 
-Start all of the above with: `docker compose up -d`
+Run the API:
 
-After starting, pull the LLM model once:
-```bash
-docker exec -it ollama ollama pull llama3
+```cmd
+dotnet restore backend/Hibana.sln
+dotnet run --project backend/src/Hibana.Api
 ```
 
-### External Services (optional, all free tier)
-| Service | Purpose | Sign Up |
-|---|---|---|
-| Sentry | Error tracking & performance monitoring | [sentry.io](https://sentry.io) |
-| Mapbox | Interactive maps (alternative to free OpenStreetMap) | [mapbox.com](https://mapbox.com) |
+Run the client in a second CMD window:
 
-Both are optional. The app runs fully without them — OpenStreetMap via Leaflet is used by default for maps, and Sentry DSN can be left empty.
-
-Copy your keys into `.env` — see `.env` for the exact variable names.
-
-## Quick Start
-
-### 1. Start infrastructure
-
-```bash
-docker compose up -d
+```cmd
+pnpm run dev
 ```
 
-Starts: SQL Server, Redis, RabbitMQ, Ollama, Prometheus, Grafana.
+The client is served at `http://localhost:5173`; the API uses `http://localhost:5000` by default. Copy `.env.example` to `.env` only when the API runs on a different origin.
 
-### 2. Pull local LLM model
+## API
 
-```bash
-docker exec -it ollama ollama pull llama3
-```
+- `GET /api/v1/weather?latitude=-6.9175&longitude=107.6191&hourlyHours=24&dailyDays=7&units=metric`
+- `GET /api/v1/locations/search?query=Bandung`
+- `GET /health/live`
+- `GET /health/ready`
 
-### 3. Start backend
+In development, OpenAPI is at `/openapi/v1.json`. Invalid query values return RFC 7807 Problem Details. The API limits public endpoint traffic to 60 requests per minute per application instance.
 
-```bash
-cd backend
-dotnet restore
-dotnet run --project src/IoTHub.Api
-```
+## Deployment
 
-- REST API: http://localhost:5000
-- Swagger: http://localhost:5000/swagger
-- gRPC:    https://localhost:5001
-- Metrics: http://localhost:5000/metrics
+Deploy the Vite build to a static host and the API to any .NET-compatible host. Configure the allowed frontend origin under `Cors:AllowedOrigins`; do not expose provider credentials in the browser. There are no migrations, persistent volumes, or infrastructure services to deploy.
 
-### 4. Start frontend
+## Removed legacy product infrastructure
 
-```bash
-npm install
-npm run dev
-```
-
-Frontend: http://localhost:5173
-
-### 5. Use the CLI tool
-
-```bash
-cd cli
-dotnet run -- diff --summarize <path-to-diff-file>
-```
-
-The `iotdiff` CLI uses a local Ollama model to analyze and summarize complex system diffs.
-
-## API Reference
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/devices` | List all devices |
-| POST | `/api/devices` | Register new device |
-| PUT | `/api/devices/{id}/threshold` | Update alert threshold |
-| GET | `/api/devices/{id}/telemetry?hours=24` | Device telemetry history |
-| POST | `/api/telemetry/ingest` | REST telemetry ingest (gRPC preferred) |
-| GET | `/api/alerts?page=0&size=20` | Paged alert list |
-| POST | `/api/alerts/{id}/acknowledge` | Acknowledge alert |
-
-### Register device example
-```json
-POST /api/devices
-{
-  "hardwareId": "METER-001",
-  "name": "Smart Meter NYC",
-  "latitude": 40.7128,
-  "longitude": -74.0060,
-  "alertThreshold": 85.0,
-  "unit": "°C"
-}
-```
-
-### Ingest telemetry (REST)
-```json
-POST /api/telemetry/ingest
-{
-  "hardwareId": "METER-001",
-  "value": 72.5,
-  "unit": "°C"
-}
-```
-
-## gRPC Ingest (proto)
-
-```protobuf
-service TelemetryService {
-  rpc IngestReading (TelemetryRequest) returns (TelemetryResponse);
-  rpc IngestStream (stream TelemetryRequest) returns (IngestStreamResponse);
-}
-```
-
-Use `IngestStream` for high-throughput device simulation (thousands of pings/sec).
-
-## SignalR Events (frontend subscribes)
-
-| Event | Payload |
-|-------|---------|
-| `TelemetryReceived` | `{ deviceId, deviceName, value, unit, timestamp }` |
-| `AlertTriggered` | `{ deviceId, deviceName, message, severity, triggerValue, threshold }` |
-| `DeviceStatusChanged` | `{ deviceId, status, lastSeen }` |
-
-## Multi-Agent AI Orchestration
-
-Built with **Microsoft Semantic Kernel** and a local **Ollama** instance (100% free, no external API calls):
-
-- **Planner Agent**: Monitors node health metrics in real-time. When a node's failure rate or latency exceeds thresholds, the planner agent flags it and assembles a diagnostic context.
-- **Reviewer Agent**: Receives the failure context from the planner and systematically critiques the failure logs, identifying performance bottlenecks and suggesting remediation steps.
-
-Agent activity is surfaced in the Alert Feed UI and persisted as structured audit entries.
-
-## CLI Tool — `iotdiff`
-
-A custom .NET CLI tool that uses a local Ollama model to automatically analyze and summarize complex system diffs:
-
-```bash
-# Summarize a git diff
-iotdiff diff --summarize ./changes.patch
-
-# Analyze a deployment diff between two config snapshots
-iotdiff diff --compare config-before.json config-after.json
-```
-
-The tool streams the LLM summary to stdout, making it easy to pipe into CI reports or deployment logs.
-
-## UI Pages
-
-- **Live Map** — Leaflet map, colored markers per device status, live updates
-- **Analytics** — Device selector, real-time AreaChart (Recharts), threshold line overlay
-- **Devices** — Register devices, inline threshold editing
-- **Alerts** — Real-time feed with severity badges, acknowledge button, pagination, agent analysis panel
-
-## Tech Stack
-
-- **Backend**: .NET 10, ASP.NET Core, MediatR, EF Core 9
-- **Architecture**: Clean Architecture with MediatR (CQRS)
-- **Databases**: SQL Server 2022 (write), Redis 7 (cache)
-- **Messaging**: RabbitMQ 3.13
-- **Real-time**: ASP.NET Core SignalR
-- **gRPC**: Grpc.AspNetCore
-- **AI Orchestration**: Local Ollama instance (100% free) + Microsoft Semantic Kernel (multi-agent planner/reviewer)
-- **CLI Tool**: .NET 10 CLI with Ollama integration (AI-powered diff summarization)
-- **Frontend**: React 18, Vite, Tailwind CSS, React-Leaflet, Recharts, @microsoft/signalr
-- **Maps**: OpenStreetMap via Leaflet (free) or Mapbox (Free Tier)
-- **Error Tracking**: Sentry (Developer Free Plan) or GlitchTip
-- **Observability**: Prometheus + Grafana, prometheus-net
-- **Infrastructure**: Docker (SQL Server on Linux, RabbitMQ, Ollama)
+The previous IoT monitoring application, SQL Server, EF Core, Redis, RabbitMQ, SignalR, gRPC, Semantic Kernel, Ollama, MediatR, Prometheus, Sentry, Docker Compose, and CLI have been removed. Hibana now contains only the weather-explorer product.

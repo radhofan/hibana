@@ -1,20 +1,4 @@
-const BASE = '/api'
-
-async function request(method, path, body) {
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Request failed' }))
-    throw new Error(err.message || `HTTP ${res.status}`)
-  }
-  return res.json()
-}
-
-export const api = {
-  get: (path) => request('GET', path),
-  post: (path, body) => request('POST', path, body),
-  put: (path, body) => request('PUT', path, body),
-}
+const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api/v1'
+async function request(path) { const response = await fetch(`${baseUrl}${path}`); if (!response.ok) { const problem = await response.json().catch(() => ({})); throw new Error(problem.detail ?? 'The request could not be completed.'); } return response.json() }
+export const getWeather = (latitude, longitude, units) => request(`/weather?latitude=${latitude}&longitude=${longitude}&hourlyHours=24&dailyDays=7&units=${units}`)
+export const searchLocations = query => request(`/locations/search?query=${encodeURIComponent(query)}`)
