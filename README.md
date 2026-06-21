@@ -4,6 +4,8 @@ Hibana is an interactive global weather explorer built with React and ASP.NET Co
 
 ### Explore the globe
 
+![Hibana globe and weather panel](public/images/screenshots/weather-explorer.png)
+
 Click a point on Earth to fly the globe to that location and load its weather.
 
 ### Current conditions and forecasts
@@ -13,6 +15,8 @@ See the resolved location, local time, current conditions, hourly temperatures, 
 ### City search and comparison
 
 Search for a city, fly there, and compare up to four locations for the current browser session.
+
+Future screenshot slots are documented in [public/images/screenshots/README.md](public/images/screenshots/README.md).
 
 ## What You Can Do
 
