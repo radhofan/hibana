@@ -1,10 +1,10 @@
-# Hibana
+# CariCuaca
 
-Hibana is an interactive global weather explorer built with React and ASP.NET Core. Pick anywhere on the 3D globe, search for a city, and inspect live conditions with hourly and seven-day forecasts. It has no accounts, database, Redis, queues, containers, or persistent backend state.
+CariCuaca is an interactive global weather explorer built with React and ASP.NET Core. Pick anywhere on the 3D globe, search for a city, and inspect live conditions with hourly and seven-day forecasts. It has no accounts, database, Redis, queues, containers, or persistent backend state.
 
 ### Explore the globe
 
-![Hibana globe and weather panel](public/images/screenshots/weather-explorer.png)
+![CariCuaca globe and weather panel](public/images/screenshots/weather-explorer.png)
 
 Click a point on Earth to fly the globe to that location and load its weather.
 
@@ -36,7 +36,7 @@ Future screenshot slots are documented in [public/images/screenshots/README.md](
 2. The React client sends coordinates to `GET /api/v1/weather` on the ASP.NET Core API.
 3. The API validates the request and checks `IMemoryCache`.
 4. On a cache miss, the API requests weather from Open-Meteo and a location name from Nominatim concurrently.
-5. The API returns one Hibana-owned response. If geocoding fails, weather still returns with a coordinate label.
+5. The API returns one CariCuaca-owned response. If geocoding fails, weather still returns with a coordinate label.
 
 ```mermaid
 flowchart LR
@@ -104,7 +104,7 @@ pnpm run build
 
 ## Stateless Architecture
 
-Hibana uses only process-local `IMemoryCache` for temporary weather and geocoding results. Restarting the API safely clears the cache. There are no migrations, volumes, database configuration, user records, saved-location tables, or provider secrets in the browser.
+CariCuaca uses only process-local `IMemoryCache` for temporary weather and geocoding results. Restarting the API safely clears the cache. There are no migrations, volumes, database configuration, user records, saved-location tables, or provider secrets in the browser.
 
 ## Deployment
 
